@@ -61,7 +61,7 @@ function build(code,d,format,context){
  case "sign":{
   if(d===1){ans=I(Math.abs(n));p="在數線上，"+n+" 到 0 的距離是多少？";why="距離就是絕對值 |"+n+"| = "+Math.abs(n)+"。";tag="絕對值";}
   else if(d<=3){ans=I(Math.abs(n)-Math.abs(x));p="計算 |"+n+"| − |"+x+"|。";why=Math.abs(n)+" − "+Math.abs(x)+" = "+R.str(ans)+"。";tag="絕對值";}
-  else{ans=I(Math.abs(n-m));p="探險隊位於海拔 "+n+" 公尺，目標在海拔 "+m+" 公尺。兩處高度相差多少公尺？";why="兩者距離 = |"+n+" − "+m+"| = "+R.str(ans)+" 公尺。";tag="數線距離";stem="讀取情境";}
+  else{const climb=rand(4,9);ans=I(Math.abs(n+climb-m));p="登山隊從海拔 "+n+" 公尺上升 "+climb+" 公尺，再比較終點與海拔 "+m+" 公尺的觀測站，兩處高度相差多少公尺？";why="登山隊終點海拔 "+(n+climb)+"，高度差 = |"+(n+climb)+" − "+m+"| = "+R.str(ans)+" 公尺。";tag="數線距離";stem="多步情境";}
   hint="在數線上先找兩個位置，並注意距離不會是負數。";method="使用數線及絕對值。";break;
  }
  case "add":{
@@ -104,7 +104,7 @@ function build(code,d,format,context){
   let aa=rat(rand(-7,-1),rand(3,9)),bb=rat(rand(1,8),rand(3,9)),cc=rat(rand(1,5),rand(2,7));
   if(d<=2){ans=R.add(aa,bb);p="計算 "+R.str(aa)+" + "+R.str(bb)+"（最簡分數）。";why="先通分，"+R.str(aa)+" + "+R.str(bb)+" = "+R.str(ans)+"。";}
   else if(d===3){ans=R.sub(R.mul(aa,cc),bb);p="計算 ("+R.str(aa)+") × ("+R.str(cc)+") − "+R.str(bb)+"（最簡分數）。";why="先乘法再通分相減，答案 "+R.str(ans)+"。";}
-  else{ans=R.sub(R.add(aa,bb),cc);p="水槽起初有 "+R.str(bb)+" 公升，先加入 "+R.str(cc)+" 公升，接著倒掉 "+R.str(aa).replace("-","")+" 公升。若倒掉的量比加入量多，水槽的水量淨變化為多少公升？（增加為正，減少為負）";ans=R.sub(cc,rat(Math.abs(aa.n),aa.d));why="淨變化 = 加入 "+R.str(cc)+" − 倒掉 "+R.str(rat(Math.abs(aa.n),aa.d))+" = "+R.str(ans)+" 公升。";stem="分數水量變化";}
+  else{ans=R.sub(R.add(aa,bb),cc);p="水槽起初有 "+R.str(bb)+" 公升，先加入 "+R.str(cc)+" 公升，接著倒掉 "+R.str(aa).replace("-","")+" 公升。水槽的水量淨變化為多少公升？（增加為正，減少為負）";ans=R.sub(cc,rat(Math.abs(aa.n),aa.d));why="淨變化 = 加入 "+R.str(cc)+" − 倒掉 "+R.str(rat(Math.abs(aa.n),aa.d))+" = "+R.str(ans)+" 公升。";stem="分數水量變化";}
   hint="先按乘除後加減處理，注意負號；可用公分母精確計算。";tag="通分與負號";break;
  }
  case "power":{
@@ -193,12 +193,15 @@ function makeExam(form,topicRange){
  const specs={A:[["choice",10,3],["fill",10,4],["open",3,10]],B:[["choice",12,4],["fill",6,4],["open",4,7]],C:[["choice",12,5],["fill",7,4],["open",2,6]]};
  if(!specs[form])throw Error("Unknown exam");
  const scope=Array.isArray(topicRange)&&topicRange.length?topicRange:UNITS.map(x=>x.index);
+ const seen=new Set();
  let questions=[],sequence=0;
  for(const [kind,count,score] of specs[form]){
   for(let i=0;i<count;i++){
    const chapter=scope[sequence%scope.length];
    const d=kind==="choice"?[2,3,4,3,5][sequence%5]:kind==="fill"?[2,3,4,4,5][sequence%5]:[4,5,4][sequence%3];
-   const q=makeQuestion(chapter,d,kind);q.points=score;q.number=++sequence;questions.push(q);
+   let q=makeQuestion(chapter,d,kind);let retries=0;
+   while(seen.has(q.prompt)&&retries++<24)q=makeQuestion(chapter,d,kind);
+   seen.add(q.prompt);q.points=score;q.number=++sequence;questions.push(q);
   }
  }
  return {form,minutes:45,total:questions.reduce((s,q)=>s+q.points,0),questions,original:false,grading_note:"非選擇題以最終答案自動批改，不含原卷計算過程的部分給分。"};
